@@ -8,6 +8,7 @@ class QEPIGDATAFOURIERANALYSISLIBSHARED_EXPORT QEpigDataFourierAnalysisLib
 
 public:
     QEpigDataFourierAnalysisLib();
+
 };
 
 #endif // QEPIGDATAFOURIERANALYSISLIB_H
