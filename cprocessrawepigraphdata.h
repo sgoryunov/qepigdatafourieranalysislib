@@ -2,6 +2,10 @@
 #define CPROCESSRAWEPIGRAPHDATA_H
 
 #include <QtCore>
+#include <QObject>
+
+#include "qepigdatafourieranalysislib_global.h"
+
 
 typedef unsigned long       DWORD;
 typedef int                 BOOL;
@@ -25,21 +29,26 @@ typedef unsigned short      WORD;
 #define CHOP_SPE_FILENAME					2
 #define HSM_SPE_FILENAME					3
 
-class CProcessRawEpigraphData
+ class QEPIGDATAFOURIERANALYSISLIBSHARED_EXPORT CProcessRawEpigraphData: public QObject
 {
+     Q_OBJECT
 public:
     // конструктор класса
-    CProcessRawEpigraphData();
+    //CProcessRawEpigraphData();
+    explicit CProcessRawEpigraphData(QObject *parent);
     // деструктор
     virtual ~CProcessRawEpigraphData();
     // обрабатыват сырой файл и записыват извлеченную информацию
     int ProcessFile(wchar_t*);
     // обрабатывает все сырые данные в диретории
-    int ProcessDirectory(wchar_t*);		// устонавливает уровень выдачи информации
+    int ProcessDirectory(wchar_t*);
+    // устонавливает уровень выдачи информации
     void SetVerbose(WORD ver)
     {	m_Verbose = ver;	};
-    // задает директорию гдк будут лежатьобработанные файлы
+    // задает директорию, где будут лежатьобработанные файлы
     void SetDirectoryForProcessedFiles(wchar_t*);
+signals:
+    void ProcessedFile();
 private:
     WORD m_AdcRate;
     DWORD m_DataStep;

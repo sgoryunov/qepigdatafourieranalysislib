@@ -22,14 +22,19 @@ using namespace std;
     const WORD CProcessRawEpigraphData::m_ChanNumInHSMPrdDestrib = 100;
     const WORD CProcessRawEpigraphData::m_ChanNumInChopperPrdDestrib = 100;
     //wchar_t m_ConstPartOfDataFile[PATH_MAX] = {NULL};
-    CProcessRawEpigraphData::CProcessRawEpigraphData()
+//    CProcessRawEpigraphData::CProcessRawEpigraphData(QObject *parent):QObject(parent)
+//    {
+
+//    }
+
+    CProcessRawEpigraphData::CProcessRawEpigraphData(QObject *parent):QObject(parent)
     {
         m_AdcRate = 5000;
         m_DataStep = 1024*1024;
-        m_HalfWindInHSMFreqDestrib = 18.;//Hz
+        m_HalfWindInHSMFreqDestrib = 1.;//Hz
         m_HalfWindInChopFreqDestrib = 0.08;//Hz
         m_ChopWindNum = 12;
-        m_HsmFrequency  = 25;
+        m_HsmFrequency  = 80;
         m_Verbose = 0;
     }
     CProcessRawEpigraphData::~CProcessRawEpigraphData()
@@ -794,6 +799,7 @@ using namespace std;
               if(!(error = ProcessFile(filePath)))
               {
                   i++;
+                  emit ProcessedFile();
                   if(m_Verbose == 1)wcout<<i<<"  "<<filePath<<" --> OK"<<endl;
               }
               else
