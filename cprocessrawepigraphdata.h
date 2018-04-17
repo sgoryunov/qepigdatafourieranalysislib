@@ -47,6 +47,11 @@ public:
     {	m_Verbose = ver;	};
     // задает директорию, где будут лежатьобработанные файлы
     void SetDirectoryForProcessedFiles(wchar_t*);
+    // function for defining of number of raw files
+    WORD GetNumberOfRawFiles(){ return m_NumOfRawFiles;};
+ public slots:
+    void Stop();
+
 signals:
     void ProcessedFile();
 private:
@@ -60,6 +65,10 @@ private:
     WORD m_ChopWindNum;
     WORD m_HsmFrequency;
     WORD m_Verbose;
+    WORD m_NumOfRawFiles;
+    bool m_StopFlag;
+
+    void CulculateNumOfRawFiles(wchar_t*);
     // заполняет распределение, отправленное в последнем операнде
     void PutEventInDestrib(DWORD value,
                            DWORD valueIn,
