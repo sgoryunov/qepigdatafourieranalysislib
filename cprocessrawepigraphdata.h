@@ -75,6 +75,11 @@ private:
                            DWORD valueFin,
                            const WORD channelNumber,
                            DWORD * destribArray);
+    void PutEventInDestrib(double,
+                           double,
+                           double,
+                           const WORD,
+                           DWORD*  );
     bool GetTamplateForProcessedFilePath(wchar_t*,wchar_t*);
     // возвращает в первую переменную путь к директории с сырими файлами и заканчивается слешом
     //второй операнд путь к сырому файлу

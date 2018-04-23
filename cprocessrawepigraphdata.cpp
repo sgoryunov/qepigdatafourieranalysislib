@@ -32,7 +32,7 @@ using namespace std;
         m_AdcRate = 5000;
         m_DataStep = 1024*1024;
         m_HalfWindInHSMFreqDestrib = 0.5;//Hz
-        m_HalfWindInChopFreqDestrib = 0.08;//Hz
+        m_HalfWindInChopFreqDestrib = 2;//Hz
         m_ChopWindNum = 1;
         m_HsmFrequency  = 80;
         m_Verbose = 0;
@@ -209,10 +209,11 @@ using namespace std;
             if(hsmMotorPulseCounter > 1)
             {
                 DWORD sum(0),inOfPrdDistr(0),finOfPrdDistr(0),avrPrd(0); // all in ticks
-                //m_HsmFrequency = WORD(m_AdcRate*1000.*(hsmMotorPulseCounter-1)/sum+0.5);
+                sum = hsmMotorPulseTime[hsmMotorPulseCounter - 1] - hsmMotorPulseTime[0];
+                m_HsmFrequency = WORD(1000.*m_AdcRate*(hsmMotorPulseCounter-1)/sum+0.5);
                 avrPrd = DWORD(1000.*m_AdcRate/m_HsmFrequency);
                 HalfWindTimeInHSMPrdDestrib = avrPrd -
-                        DWORD(1000.*m_AdcRate/(1.*m_HsmFrequency + m_HalfWindInHSMFreqDestrib));
+                       DWORD(m_AdcRate*1000./(1.*m_HsmFrequency + m_HalfWindInHSMFreqDestrib));
                 inOfPrdDistr = avrPrd - HalfWindTimeInHSMPrdDestrib;
                 finOfPrdDistr = avrPrd + HalfWindTimeInHSMPrdDestrib;
                 for(WORD i(1);i<hsmMotorPulseCounter;i++)
@@ -237,6 +238,8 @@ using namespace std;
                                                DWORD(1000.*m_AdcRate/(rotFrequency + m_HalfWindInChopFreqDestrib));
                 inOfPrdDistr = avrPrd - HalfWindTimeInChopPrdDestrib;
                 finOfPrdDistr = avrPrd + HalfWindTimeInChopPrdDestrib;
+                if(modFrequency == 126)
+                    int t=1;
                 for(WORD i(1);i<modulatorPulseCounter;i++)
                     PutEventInDestrib(modulatorPulseTime[i] - modulatorPulseTime[i-1],
                                         inOfPrdDistr,
@@ -707,7 +710,28 @@ using namespace std;
                 }
             }
     }
-    //-----------------------------------------------
+    //------------------------------------------------
+    void CProcessRawEpigraphData::PutEventInDestrib(double value,
+            double valueIn,
+            double valueFin,
+            const WORD channelNumber,
+            DWORD* destribArray)
+    {
+            double step = 1.*(valueFin-valueIn)/channelNumber;
+            for(WORD i(0);i<channelNumber;i++)
+            {
+                if((valueIn + step*i) < value &&
+                    value < (valueIn + step*(i+1)))
+                {
+                    destribArray[i]++;
+                    return;
+                }
+            }
+    }
+    //-------------------------------------------------
+
+
+
     void CProcessRawEpigraphData::GetProcessedFileName(WORD modFr,
             WORD hsmFr,
             WORD carriagePos,
@@ -794,7 +818,7 @@ using namespace std;
            wchar_t filePath[PATH_MAX] = {NULL};
            wchar_t fileNameBuf[PATH_MAX] = {NULL};
 
-           while((ent = readdir(dir)) && (!m_StopFlag))
+           while((ent = readdir(dir)) &&  !m_StopFlag)
            {
               emit ProcessedFile();
               wcscpy(filePath,dirPath);
