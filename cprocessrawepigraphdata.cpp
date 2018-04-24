@@ -31,8 +31,8 @@ using namespace std;
     {
         m_AdcRate = 5000;
         m_DataStep = 1024*1024;
-        m_HalfWindInHSMFreqDestrib = 0.5;//Hz
-        m_HalfWindInChopFreqDestrib = 2;//Hz
+        m_HalfWindInHSMFreqDestrib = 0.6;//Hz
+        m_HalfWindInChopFreqDestrib = 1.;//Hz
         m_ChopWindNum = 1;
         m_HsmFrequency  = 80;
         m_Verbose = 0;
@@ -233,17 +233,16 @@ using namespace std;
                 //cout<<modFrequency<<" "<<sum<<" "<<modulatorPulseCounter<<endl;
                 modFrequency = WORD(1000.*m_ChopWindNum*m_AdcRate*(modulatorPulseCounter-1)/sum+0.5);
                 rotFrequency = 1.*modFrequency/m_ChopWindNum;
-                avrPrd = DWORD(1000.*m_AdcRate/rotFrequency);
-                HalfWindTimeInChopPrdDestrib = avrPrd -
-                                               DWORD(1000.*m_AdcRate/(rotFrequency + m_HalfWindInChopFreqDestrib));
-                inOfPrdDistr = avrPrd - HalfWindTimeInChopPrdDestrib;
-                finOfPrdDistr = avrPrd + HalfWindTimeInChopPrdDestrib;
-                if(modFrequency == 126)
-                    int t=1;
+//                avrPrd = DWORD(1000.*m_AdcRate/rotFrequency);
+//                HalfWindTimeInChopPrdDestrib = avrPrd -
+//                                               DWORD(1000.*m_AdcRate/(rotFrequency + m_HalfWindInChopFreqDestrib));
+//                inOfPrdDistr = avrPrd - HalfWindTimeInChopPrdDestrib;
+//                finOfPrdDistr = avrPrd + HalfWindTimeInChopPrdDestrib;
+
                 for(WORD i(1);i<modulatorPulseCounter;i++)
-                    PutEventInDestrib(modulatorPulseTime[i] - modulatorPulseTime[i-1],
-                                        inOfPrdDistr,
-                                        finOfPrdDistr,
+                    PutEventInFreqDestrib(double(modulatorPulseTime[i] - modulatorPulseTime[i-1]),
+                                        modFrequency,
+                                        m_HalfWindInChopFreqDestrib,
                                         m_ChanNumInChopperPrdDestrib,
                                         chopPeriodDistr);
             }
@@ -527,14 +526,16 @@ using namespace std;
                 if(inClientFile.is_open()) inClientFile.close();
                 // сбросим данные распределения в частотах в файл
                 ofstream outClientFile(filePathBuffer);
-                DWORD prdStep(0),prdIn(0);// usec
+                double freqStep(0),freqIn(0);// usec
                 double freq(0.);
-                prdStep = DWORD(2*HalfWindTimeInChopPrdDestrib/m_ChanNumInChopperPrdDestrib);
-                prdIn = DWORD(1000.*m_AdcRate/rotFrequency) + HalfWindTimeInChopPrdDestrib;
+//                freqStep = DWORD(2*HalfWindTimeInChopPrdDestrib/m_ChanNumInChopperPrdDestrib);
+//                freqIn = DWORD(1000.*m_AdcRate/rotFrequency) + HalfWindTimeInChopPrdDestrib;
+                freqStep = 2.*m_HalfWindInChopFreqDestrib/m_ChanNumInChopperPrdDestrib;
+                freqIn = rotFrequency-m_HalfWindInChopFreqDestrib;
                 for(WORD i(0);i<m_ChanNumInChopperPrdDestrib;i++)
                 {
-                    freq = 1000.*m_AdcRate*m_ChopWindNum/(prdIn - prdStep*i);
-                    outClientFile<<freq<<" "<<chopPeriodDistr[m_ChanNumInChopperPrdDestrib-1-i]<<"\n";
+                    freq = freqIn + freqStep*i;
+                    outClientFile<<freq<<" "<<chopPeriodDistr[i]<<"\n";
                 }
                 outClientFile<<nPrdFromFile+modulatorPulseCounter-1<<" "<<rotFrequency<<"\n";
             }
