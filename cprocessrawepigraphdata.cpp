@@ -204,24 +204,24 @@ using namespace std;
             WORD modFrequency(0);
             double rotFrequency(0.);
             //m_HalfWindInChopFreqDestrib /= m_ChopWindNum;
-            DWORD hsmPeriodDistr[m_ChanNumInHSMPrdDestrib] = {NULL};
+            DWORD hsmFrequencyDistr[m_ChanNumInHSMPrdDestrib] = {NULL};
             DWORD chopPeriodDistr[m_ChanNumInChopperPrdDestrib] = {NULL};
             if(hsmMotorPulseCounter > 1)
             {
                 DWORD sum(0),inOfPrdDistr(0),finOfPrdDistr(0),avrPrd(0); // all in ticks
                 sum = hsmMotorPulseTime[hsmMotorPulseCounter - 1] - hsmMotorPulseTime[0];
                 m_HsmFrequency = WORD(1000.*m_AdcRate*(hsmMotorPulseCounter-1)/sum+0.5);
-                avrPrd = DWORD(1000.*m_AdcRate/m_HsmFrequency);
-                HalfWindTimeInHSMPrdDestrib = avrPrd -
-                       DWORD(m_AdcRate*1000./(1.*m_HsmFrequency + m_HalfWindInHSMFreqDestrib));
-                inOfPrdDistr = avrPrd - HalfWindTimeInHSMPrdDestrib;
-                finOfPrdDistr = avrPrd + HalfWindTimeInHSMPrdDestrib;
+//                avrPrd = DWORD(1000.*m_AdcRate/m_HsmFrequency);
+//                HalfWindTimeInHSMPrdDestrib = avrPrd -
+//                       DWORD(m_AdcRate*1000./(1.*m_HsmFrequency + m_HalfWindInHSMFreqDestrib));
+//                inOfPrdDistr = avrPrd - HalfWindTimeInHSMPrdDestrib;
+//                finOfPrdDistr = avrPrd + HalfWindTimeInHSMPrdDestrib;
                 for(WORD i(1);i<hsmMotorPulseCounter;i++)
-                    PutEventInDestrib(hsmMotorPulseTime[i] - hsmMotorPulseTime[i-1],
-                                        inOfPrdDistr,
-                                        finOfPrdDistr,
+                    PutEventInFreqDestrib(double(hsmMotorPulseTime[i] - hsmMotorPulseTime[i-1]),
+                                        m_HsmFrequency,
+                                        m_HalfWindInHSMFreqDestrib,
                                         m_ChanNumInHSMPrdDestrib,
-                                        hsmPeriodDistr);
+                                        hsmFrequencyDistr);
             }
             // посмотрим есть ли импульсы в канале чоппера
             // и будем записывать распределение частоты
@@ -486,7 +486,7 @@ using namespace std;
                     double freq(0.);
                     while(inClientFile>>freq>>val && !inClientFile.eof())
                     {
-                        hsmPeriodDistr[chan++]+=val;
+                        hsmFrequencyDistr[chan++]+=val;
                         if(chan == m_ChanNumInHSMPrdDestrib)
                             break;
                     }
@@ -495,14 +495,14 @@ using namespace std;
                 if(inClientFile.is_open()) inClientFile.close();
                 // сбросим данные распределения в частотах в файл
                 ofstream outClientFile(filePathBuffer);
-                DWORD prdStep(0),prdIn(0);// usec
+                double freqStep(0),freqIn(0);// usec
                 double freq(0.);
-                prdStep = DWORD(2*HalfWindTimeInHSMPrdDestrib/m_ChanNumInHSMPrdDestrib);
-                prdIn = DWORD(1000.*m_AdcRate/m_HsmFrequency) + HalfWindTimeInHSMPrdDestrib;
+                freqStep = 2.*m_HalfWindInHSMFreqDestrib/m_ChanNumInHSMPrdDestrib;
+                freqIn = m_HsmFrequency-m_HalfWindInHSMFreqDestrib;
                 for(WORD i(0);i<m_ChanNumInHSMPrdDestrib;i++)
                 {
-                    freq = 1000.*m_AdcRate/(prdIn - prdStep*i);
-                    outClientFile<<freq<<" "<<hsmPeriodDistr[m_ChanNumInHSMPrdDestrib-1-i]<<"\n";
+                    freq = freqIn + freqStep*i;
+                    outClientFile<<freq<<" "<<hsmFrequencyDistr[i]<<"\n";
                 }
                 outClientFile<<(nPrdFromFile+hsmMotorPulseCounter-1)<<"\n";
             }
@@ -711,17 +711,18 @@ using namespace std;
             }
     }
     //------------------------------------------------
-    void CProcessRawEpigraphData::PutEventInDestrib(double value,
-            double valueIn,
-            double valueFin,
+    void CProcessRawEpigraphData::PutEventInFreqDestrib(double value,
+            double avrFreq,
+            double halfWidth,
             const WORD channelNumber,
             DWORD* destribArray)
     {
-            double step = 1.*(valueFin-valueIn)/channelNumber;
+            double step = 2.*halfWidth/channelNumber;
+            double valueIn = avrFreq-halfWidth;
             for(WORD i(0);i<channelNumber;i++)
             {
-                if((valueIn + step*i) < value &&
-                    value < (valueIn + step*(i+1)))
+                if(1000.*m_AdcRate/(valueIn + step*(i+1)) < value &&
+                    value < 1000.*m_AdcRate/(valueIn + step*i))
                 {
                     destribArray[i]++;
                     return;
