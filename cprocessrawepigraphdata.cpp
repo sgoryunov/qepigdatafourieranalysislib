@@ -19,7 +19,7 @@ using namespace std;
 
 //namespace ProcessRawFiles
 //{
-    const WORD CProcessRawEpigraphData::m_ChanNumInHSMPrdDestrib = 100;
+    const WORD CProcessRawEpigraphData::m_ChanNumInHSMPrdDestrib = 200;
     const WORD CProcessRawEpigraphData::m_ChanNumInChopperPrdDestrib = 100;
     //wchar_t m_ConstPartOfDataFile[PATH_MAX] = {NULL};
 //    CProcessRawEpigraphData::CProcessRawEpigraphData(QObject *parent):QObject(parent)
@@ -32,7 +32,7 @@ using namespace std;
         m_AdcRate = 5000;
         m_DataStep = 1024*1024;
         m_HalfWindInHSMFreqDestrib = 0.6;//Hz
-        m_HalfWindInChopFreqDestrib = 1.;//Hz
+        m_HalfWindInChopFreqDestrib = 1.0;//Hz
         m_ChopWindNum = 1;
         m_HsmFrequency  = 80;
         m_Verbose = 0;
@@ -233,18 +233,33 @@ using namespace std;
                 //cout<<modFrequency<<" "<<sum<<" "<<modulatorPulseCounter<<endl;
                 modFrequency = WORD(1000.*m_ChopWindNum*m_AdcRate*(modulatorPulseCounter-1)/sum+0.5);
                 rotFrequency = 1.*modFrequency/m_ChopWindNum;
-//                avrPrd = DWORD(1000.*m_AdcRate/rotFrequency);
-//                HalfWindTimeInChopPrdDestrib = avrPrd -
-//                                               DWORD(1000.*m_AdcRate/(rotFrequency + m_HalfWindInChopFreqDestrib));
-//                inOfPrdDistr = avrPrd - HalfWindTimeInChopPrdDestrib;
-//                finOfPrdDistr = avrPrd + HalfWindTimeInChopPrdDestrib;
+                avrPrd = DWORD(1000.*m_AdcRate/rotFrequency + 0.5);
+                HalfWindTimeInChopPrdDestrib =
+                                               DWORD(1000.*m_AdcRate/(rotFrequency - m_HalfWindInChopFreqDestrib) + 0.5) - avrPrd;
+
+                inOfPrdDistr = avrPrd - HalfWindTimeInChopPrdDestrib;
+                finOfPrdDistr = avrPrd + HalfWindTimeInChopPrdDestrib;
+
 
                 for(WORD i(1);i<modulatorPulseCounter;i++)
-                    PutEventInFreqDestrib(double(modulatorPulseTime[i] - modulatorPulseTime[i-1]),
-                                        modFrequency,
-                                        m_HalfWindInChopFreqDestrib,
-                                        m_ChanNumInChopperPrdDestrib,
-                                        chopPeriodDistr);
+                PutEventInDestrib(modulatorPulseTime[i] - modulatorPulseTime[i-1],
+                                    inOfPrdDistr,
+                                    finOfPrdDistr,
+                                    m_ChanNumInChopperPrdDestrib,
+                                    chopPeriodDistr,
+                                    HalfWindTimeInChopPrdDestrib);
+
+                if(rotFrequency == 324)
+                {
+                    int t = 1;
+                }
+
+//                for(WORD i(1);i<modulatorPulseCounter;i++)
+//                    PutEventInFreqDestrib(double(modulatorPulseTime[i] - modulatorPulseTime[i-1]),
+//                                        modFrequency,
+//                                        m_HalfWindInChopFreqDestrib,
+//                                        m_ChanNumInChopperPrdDestrib,
+//                                        chopPeriodDistr);
             }
             // помотрим есть ли импульсы в каналах прерывателя
             // и заполним массив распределения
@@ -526,18 +541,28 @@ using namespace std;
                 if(inClientFile.is_open()) inClientFile.close();
                 // сбросим данные распределения в частотах в файл
                 ofstream outClientFile(filePathBuffer);
-                double freqStep(0),freqIn(0);// usec
+
+
+                DWORD prdStep(0),prdIn(0);// usec
                 double freq(0.);
-//                freqStep = DWORD(2*HalfWindTimeInChopPrdDestrib/m_ChanNumInChopperPrdDestrib);
-//                freqIn = DWORD(1000.*m_AdcRate/rotFrequency) + HalfWindTimeInChopPrdDestrib;
-                freqStep = 2.*m_HalfWindInChopFreqDestrib/m_ChanNumInChopperPrdDestrib;
-                freqIn = rotFrequency-m_HalfWindInChopFreqDestrib;
+                prdStep = DWORD(2*HalfWindTimeInChopPrdDestrib/m_ChanNumInChopperPrdDestrib);
+                prdIn = DWORD(1000.*m_AdcRate/rotFrequency) + HalfWindTimeInChopPrdDestrib;
                 for(WORD i(0);i<m_ChanNumInChopperPrdDestrib;i++)
                 {
-                    freq = freqIn + freqStep*i;
-                    outClientFile<<freq<<" "<<chopPeriodDistr[i]<<"\n";
+                    freq = 1000.*m_AdcRate*m_ChopWindNum/(prdIn - prdStep*i);
+                    outClientFile<<freq<<" "<<chopPeriodDistr[m_ChanNumInChopperPrdDestrib-1-i]<<"\n";
                 }
-                outClientFile<<nPrdFromFile+modulatorPulseCounter-1<<" "<<rotFrequency<<"\n";
+
+//                double freqStep(0),freqIn(0);// usec
+//                double freq(0.);
+//                freqStep = 2.*m_HalfWindInChopFreqDestrib/m_ChanNumInChopperPrdDestrib;
+//                freqIn = modFrequency - m_HalfWindInChopFreqDestrib;
+//                for(WORD i(0);i<m_ChanNumInChopperPrdDestrib;i++)
+//                {
+//                    freq = freqIn + freqStep*i;
+//                    outClientFile<<freq<<" "<<chopPeriodDistr[i]<<"\n";
+//                }
+                outClientFile<<nPrdFromFile+modulatorPulseCounter-1<<" "<<modFrequency<<"\n";
             }
             // считаем данные из ранее созданного файла спектра времение пролета
             if(wcslen(processedFileName[OSCIL_FILENAME])>0)
@@ -711,6 +736,33 @@ using namespace std;
                 }
             }
     }
+
+    //------------------------------------------------
+    void CProcessRawEpigraphData::PutEventInDestrib(DWORD value,
+            DWORD valueIn,
+            DWORD valueFin,
+            const WORD channelNumber,
+            DWORD * destribArray,
+            DWORD&  halfWindInPrdDistr)
+    {
+            double step = 1.*(valueFin-valueIn)/channelNumber;
+            if(step<1)
+            {
+                step = 1.;
+                valueIn = valueIn + halfWindInPrdDistr - channelNumber/2;
+                halfWindInPrdDistr = channelNumber/2;
+            }
+            for(WORD i(0);i<channelNumber;i++)
+            {
+                if((valueIn + DWORD(step*i)) < value &&
+                    value < (valueIn+DWORD(step*(i+1))))
+                {
+                    destribArray[i]++;
+                    return;
+                }
+            }
+    }
+
     //------------------------------------------------
     void CProcessRawEpigraphData::PutEventInFreqDestrib(double value,
             double avrFreq,

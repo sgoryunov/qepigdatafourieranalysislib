@@ -75,6 +75,12 @@ private:
                            DWORD valueFin,
                            const WORD channelNumber,
                            DWORD * destribArray);
+    void PutEventInDestrib(DWORD value,
+                           DWORD valueIn,
+                           DWORD valueFin,
+                           const WORD channelNumber,
+                           DWORD * destribArray,
+                           DWORD& );
     void PutEventInFreqDestrib(double,
                            double,
                            double,
