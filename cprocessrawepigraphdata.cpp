@@ -19,7 +19,7 @@ using namespace std;
 
 //namespace ProcessRawFiles
 //{
-    const WORD CProcessRawEpigraphData::m_ChanNumInHSMPrdDestrib = 200;
+    const WORD CProcessRawEpigraphData::m_ChanNumInHSMPrdDestrib = 100;
     const WORD CProcessRawEpigraphData::m_ChanNumInChopperPrdDestrib = 100;
     //wchar_t m_ConstPartOfDataFile[PATH_MAX] = {NULL};
 //    CProcessRawEpigraphData::CProcessRawEpigraphData(QObject *parent):QObject(parent)
@@ -199,63 +199,76 @@ using namespace std;
             // здесь начнется обрадотка данных загруженных из файла
             // посмотрим есть ли импульсы в канале hsm
             // и будем записывать распределение частоты
-            DWORD HalfWindTimeInHSMPrdDestrib = 0; //usec
-            DWORD HalfWindTimeInChopPrdDestrib = 0; //usec
+            double HalfWindTimeInHSMPrdDestrib = 0; //usec
+            double HalfWindTimeInChopPrdDestrib = 0.; //usec
             WORD modFrequency(0);
             double rotFrequency(0.);
             //m_HalfWindInChopFreqDestrib /= m_ChopWindNum;
-            DWORD hsmFrequencyDistr[m_ChanNumInHSMPrdDestrib] = {NULL};
+            DWORD hsmPeriodDistr[m_ChanNumInHSMPrdDestrib] = {NULL};
             DWORD chopPeriodDistr[m_ChanNumInChopperPrdDestrib] = {NULL};
             if(hsmMotorPulseCounter > 1)
             {
-                DWORD sum(0),inOfPrdDistr(0),finOfPrdDistr(0),avrPrd(0); // all in ticks
+                DWORD sum(0);
+                double inOfPrdDistr(0),finOfPrdDistr(0),avrPrd(0); // all in ticks
                 sum = hsmMotorPulseTime[hsmMotorPulseCounter - 1] - hsmMotorPulseTime[0];
                 m_HsmFrequency = WORD(1000.*m_AdcRate*(hsmMotorPulseCounter-1)/sum+0.5);
-//                avrPrd = DWORD(1000.*m_AdcRate/m_HsmFrequency);
-//                HalfWindTimeInHSMPrdDestrib = avrPrd -
-//                       DWORD(m_AdcRate*1000./(1.*m_HsmFrequency + m_HalfWindInHSMFreqDestrib));
-//                inOfPrdDistr = avrPrd - HalfWindTimeInHSMPrdDestrib;
-//                finOfPrdDistr = avrPrd + HalfWindTimeInHSMPrdDestrib;
+
+//============Distrebution with const step for periods=============================
+
+                avrPrd = 1000.*m_AdcRate/m_HsmFrequency;
+                HalfWindTimeInHSMPrdDestrib = avrPrd -
+                       m_AdcRate*1000./(1.*m_HsmFrequency + m_HalfWindInHSMFreqDestrib);
+                inOfPrdDistr = avrPrd - HalfWindTimeInHSMPrdDestrib;
+                finOfPrdDistr = avrPrd + HalfWindTimeInHSMPrdDestrib;
                 for(WORD i(1);i<hsmMotorPulseCounter;i++)
-                    PutEventInFreqDestrib(double(hsmMotorPulseTime[i] - hsmMotorPulseTime[i-1]),
-                                        m_HsmFrequency,
-                                        m_HalfWindInHSMFreqDestrib,
-                                        m_ChanNumInHSMPrdDestrib,
-                                        hsmFrequencyDistr);
+                PutEventInDestrib(double(hsmMotorPulseTime[i] - hsmMotorPulseTime[i-1]),
+                                    inOfPrdDistr,
+                                    finOfPrdDistr,
+                                    m_ChanNumInHSMPrdDestrib,
+                                    hsmPeriodDistr,
+                                    HalfWindTimeInHSMPrdDestrib);
+
+//============Distrebution with const step for periods=============================
+//                for(WORD i(1);i<hsmMotorPulseCounter;i++)
+//                    PutEventInFreqDestrib(double(hsmMotorPulseTime[i] - hsmMotorPulseTime[i-1]),
+//                                        m_HsmFrequency,
+//                                        m_HalfWindInHSMFreqDestrib,
+//                                        m_ChanNumInHSMPrdDestrib,
+//                                        hsmFrequencyDistr);
+
             }
             // посмотрим есть ли импульсы в канале чоппера
             // и будем записывать распределение частоты
             if(modulatorPulseCounter > 1)
             {
                 //cout<<"here"<<endl;
-                DWORD sum(0),inOfPrdDistr(0),finOfPrdDistr(0),avrPrd(0); // all in ticks
+                DWORD sum(0);
+                double inOfPrdDistr(0.),finOfPrdDistr(0.),avrPrd(0.); // all in ticks
                 sum = modulatorPulseTime[modulatorPulseCounter-1] - modulatorPulseTime[0];
                 //cout<<modFrequency<<" "<<sum<<" "<<modulatorPulseCounter<<endl;
                 modFrequency = WORD(1000.*m_ChopWindNum*m_AdcRate*(modulatorPulseCounter-1)/sum+0.5);
                 rotFrequency = 1.*modFrequency/m_ChopWindNum;
-                avrPrd = DWORD(1000.*m_AdcRate/rotFrequency + 0.5);
-                HalfWindTimeInChopPrdDestrib =
-                                               DWORD(1000.*m_AdcRate/(rotFrequency - m_HalfWindInChopFreqDestrib) + 0.5) - avrPrd;
 
+//============Distrebution with const step for periods=============================
+
+                avrPrd = 1000.*m_AdcRate/rotFrequency;
+                HalfWindTimeInChopPrdDestrib =
+                                               1000.*m_AdcRate/(rotFrequency - m_HalfWindInChopFreqDestrib) - avrPrd;
                 inOfPrdDistr = avrPrd - HalfWindTimeInChopPrdDestrib;
                 finOfPrdDistr = avrPrd + HalfWindTimeInChopPrdDestrib;
-
-
                 for(WORD i(1);i<modulatorPulseCounter;i++)
-                PutEventInDestrib(modulatorPulseTime[i] - modulatorPulseTime[i-1],
+                PutEventInDestrib(double(modulatorPulseTime[i] - modulatorPulseTime[i-1]),
                                     inOfPrdDistr,
                                     finOfPrdDistr,
                                     m_ChanNumInChopperPrdDestrib,
                                     chopPeriodDistr,
                                     HalfWindTimeInChopPrdDestrib);
 
-                if(rotFrequency == 324)
-                {
-                    int t = 1;
-                }
+
+//============Distrebution with const step for periods=============================
 
 //                for(WORD i(1);i<modulatorPulseCounter;i++)
-//                    PutEventInFreqDestrib(double(modulatorPulseTime[i] - modulatorPulseTime[i-1]),
+//                PutEventInFreqDestrib(double(modulatorPulseTime[i] - modulatorPulseTime[i-1]),
 //                                        modFrequency,
 //                                        m_HalfWindInChopFreqDestrib,
 //                                        m_ChanNumInChopperPrdDestrib,
@@ -500,7 +513,7 @@ using namespace std;
                     double freq(0.);
                     while(inClientFile>>freq>>val && !inClientFile.eof())
                     {
-                        hsmFrequencyDistr[chan++]+=val;
+                        hsmPeriodDistr[chan++]+=val;
                         if(chan == m_ChanNumInHSMPrdDestrib)
                             break;
                     }
@@ -509,15 +522,27 @@ using namespace std;
                 if(inClientFile.is_open()) inClientFile.close();
                 // сбросим данные распределения в частотах в файл
                 ofstream outClientFile(filePathBuffer);
-                double freqStep(0),freqIn(0);// usec
+
+                //============Distrebution with const step for periods=============================
+
+                double prdStep(0),prdIn(0);// usec
                 double freq(0.);
-                freqStep = 2.*m_HalfWindInHSMFreqDestrib/m_ChanNumInHSMPrdDestrib;
-                freqIn = m_HsmFrequency-m_HalfWindInHSMFreqDestrib;
+                prdStep = 2*HalfWindTimeInHSMPrdDestrib/m_ChanNumInHSMPrdDestrib;
+                prdIn = 1000.*m_AdcRate/m_HsmFrequency + HalfWindTimeInHSMPrdDestrib;
                 for(WORD i(0);i<m_ChanNumInHSMPrdDestrib;i++)
                 {
-                    freq = freqIn + freqStep*i;
-                    outClientFile<<freq<<" "<<hsmFrequencyDistr[i]<<"\n";
+                    freq = 1000.*m_AdcRate/(prdIn - prdStep*i);
+                    outClientFile<<freq<<" "<<hsmPeriodDistr[m_ChanNumInHSMPrdDestrib-1-i]<<"\n";
                 }
+//                double freqStep(0),freqIn(0);// usec
+//                double freq(0.);
+//                freqStep = 2.*m_HalfWindInHSMFreqDestrib/m_ChanNumInHSMPrdDestrib;
+//                freqIn = m_HsmFrequency-m_HalfWindInHSMFreqDestrib;
+//                for(WORD i(0);i<m_ChanNumInHSMPrdDestrib;i++)
+//                {
+//                    freq = freqIn + freqStep*i;
+//                    outClientFile<<freq<<" "<<hsmFrequencyDistr[i]<<"\n";
+//                }
                 outClientFile<<(nPrdFromFile+hsmMotorPulseCounter-1)<<"\n";
             }
             // считаем данные из ранее созданного файла спектра периодов чоппера
@@ -542,16 +567,19 @@ using namespace std;
                 // сбросим данные распределения в частотах в файл
                 ofstream outClientFile(filePathBuffer);
 
+//============Distrebution with const step for periods=============================
 
-                DWORD prdStep(0),prdIn(0);// usec
+                double prdStep(0),prdIn(0);// usec
                 double freq(0.);
-                prdStep = DWORD(2*HalfWindTimeInChopPrdDestrib/m_ChanNumInChopperPrdDestrib);
-                prdIn = DWORD(1000.*m_AdcRate/rotFrequency) + HalfWindTimeInChopPrdDestrib;
+                prdStep = 2*HalfWindTimeInChopPrdDestrib/m_ChanNumInChopperPrdDestrib;
+                prdIn = 1000.*m_AdcRate/rotFrequency + HalfWindTimeInChopPrdDestrib;
                 for(WORD i(0);i<m_ChanNumInChopperPrdDestrib;i++)
                 {
                     freq = 1000.*m_AdcRate*m_ChopWindNum/(prdIn - prdStep*i);
                     outClientFile<<freq<<" "<<chopPeriodDistr[m_ChanNumInChopperPrdDestrib-1-i]<<"\n";
                 }
+
+//=============== Distrebution with const step for frequencies==================================
 
 //                double freqStep(0),freqIn(0);// usec
 //                double freq(0.);
@@ -562,6 +590,7 @@ using namespace std;
 //                    freq = freqIn + freqStep*i;
 //                    outClientFile<<freq<<" "<<chopPeriodDistr[i]<<"\n";
 //                }
+
                 outClientFile<<nPrdFromFile+modulatorPulseCounter-1<<" "<<modFrequency<<"\n";
             }
             // считаем данные из ранее созданного файла спектра времение пролета
@@ -729,7 +758,7 @@ using namespace std;
             for(WORD i(0);i<channelNumber;i++)
             {
                 if((valueIn + DWORD(step*i)) < value &&
-                    value < (valueIn+DWORD(step*(i+1))))
+                    value <= (valueIn+DWORD(step*(i+1))))
                 {
                     destribArray[i]++;
                     return;
@@ -738,12 +767,12 @@ using namespace std;
     }
 
     //------------------------------------------------
-    void CProcessRawEpigraphData::PutEventInDestrib(DWORD value,
-            DWORD valueIn,
-            DWORD valueFin,
+    void CProcessRawEpigraphData::PutEventInDestrib(double value,
+            double valueIn,
+            double valueFin,
             const WORD channelNumber,
             DWORD * destribArray,
-            DWORD&  halfWindInPrdDistr)
+            double& halfWindInPrdDistr)
     {
             double step = 1.*(valueFin-valueIn)/channelNumber;
             if(step<1)
@@ -754,8 +783,8 @@ using namespace std;
             }
             for(WORD i(0);i<channelNumber;i++)
             {
-                if((valueIn + DWORD(step*i)) < value &&
-                    value < (valueIn+DWORD(step*(i+1))))
+                if((valueIn + step*i) < value &&
+                    value <= (valueIn+step*(i+1)))
                 {
                     destribArray[i]++;
                     return;
@@ -775,7 +804,7 @@ using namespace std;
             for(WORD i(0);i<channelNumber;i++)
             {
                 if(1000.*m_AdcRate/(valueIn + step*(i+1)) < value &&
-                    value < 1000.*m_AdcRate/(valueIn + step*i))
+                    value <= 1000.*m_AdcRate/(valueIn + step*i))
                 {
                     destribArray[i]++;
                     return;
