@@ -303,6 +303,7 @@ using namespace std;
                             lastModPulseInOpenTurb = modulatorPulseCounter-i;
                         if(firstModPulseInOpenTurb != -1 && lastModPulseInOpenTurb != -1) break;
                     }
+                    if(lastModPulseInOpenTurb!=-1)
                     measModTimeInFileInADCTicks = modulatorPulseTime[lastModPulseInOpenTurb] -
                                                       modulatorPulseTime[firstModPulseInOpenTurb];
                 }
@@ -313,7 +314,7 @@ using namespace std;
                         detectorPulseTime[i] <= turbineCloseTime[0]-m_DataStep)
                     {
                         detectorPulseInTurbOpenCounter++;
-                        if(firstModPulseInOpenTurb != lastModPulseInOpenTurb)
+                        if((firstModPulseInOpenTurb != lastModPulseInOpenTurb) && (lastModPulseInOpenTurb!=-1))
                         {
                             if(detectorPulseTime[i] > modulatorPulseTime[firstModPulseInOpenTurb])
                             {
@@ -405,6 +406,7 @@ using namespace std;
                             lastModPulseInOpenTurb = modulatorPulseCounter-i;
                         if(firstModPulseInOpenTurb != -1 && lastModPulseInOpenTurb != -1) break;
                     }
+                    if(lastModPulseInOpenTurb!=-1)
                     measModTimeInFileInADCTicks = modulatorPulseTime[lastModPulseInOpenTurb] -
                         modulatorPulseTime[firstModPulseInOpenTurb];
                 }
@@ -415,7 +417,7 @@ using namespace std;
                         detectorPulseTime[i] <= turbineCloseTime[0]-m_DataStep)
                     {
                         detectorPulseInTurbOpenCounter++;
-                        if(firstModPulseInOpenTurb != lastModPulseInOpenTurb)
+                        if((firstModPulseInOpenTurb != lastModPulseInOpenTurb) && (lastModPulseInOpenTurb!=-1))
                         {
                             if(detectorPulseTime[i] > modulatorPulseTime[firstModPulseInOpenTurb])
                             {
