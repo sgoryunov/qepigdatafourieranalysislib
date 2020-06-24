@@ -34,7 +34,7 @@ using namespace std;
         m_HalfWindInHSMFreqDestrib = 0.6;//Hz
         m_HalfWindInChopFreqDestrib = 1.0;//Hz
         m_ChopWindNum = 1;
-        m_HsmFrequency  = 80;
+        m_HsmFrequency  = 0;
         m_Verbose = 0;
         m_StopFlag = false;
     }
