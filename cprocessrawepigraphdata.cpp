@@ -33,7 +33,7 @@ using namespace std;
         m_DataStep = 1024*1024;
         m_HalfWindInHSMFreqDestrib = 0.6;//Hz
         m_HalfWindInChopFreqDestrib = 1.0;//Hz
-        m_ChopWindNum = 1;
+        m_ChopWindNum = 12;
         m_HsmFrequency  = 0;
         m_Verbose = 0;
         m_StopFlag = false;
@@ -81,7 +81,7 @@ using namespace std;
             double measCarriagePos(0.);
             // массив для построения распределения времени пролета на
             //переоде осциляции с количеством каналов
-            const WORD oscilChanelNumber(12*12);
+            const WORD oscilChanelNumber(12*12*12);
             DWORD oscilDestrib[oscilChanelNumber] = {NULL};
 
 
